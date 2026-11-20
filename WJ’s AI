@@ -1,0 +1,91 @@
+import datetime
+from zoneinfo import ZoneInfo
+
+import streamlit as st
+from g4f.client import Client
+
+st.set_page_config(
+    page_title="WJ's AI",
+    page_icon="🤖",
+    layout="wide",
+)
+
+st.title("🤖 WJ's AI")
+st.caption("Created & published by **William Jesse**")
+
+if "messages" not in st.session_state:
+    uk_time = datetime.datetime.now(
+        ZoneInfo("Europe/London")
+    ).strftime("%Y-%m-%d %H:%M")
+
+    st.session_state.messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are WJ's AI, a friendly, smart, and helpful assistant "
+                "created by William Jesse. "
+                f"The current date and time in the UK is {uk_time}. "
+                "Keep answers clear, helpful, and friendly."
+            ),
+        },
+        {
+            "role": "assistant",
+            "content": "Hey! I'm **WJ's AI**, created by William Jesse. "
+                       "Ask me anything!",
+        },
+    ]
+
+with st.sidebar:
+    st.header("About WJ's AI")
+    st.write("An AI assistant for everyday questions.")
+
+    if st.button("New conversation", use_container_width=True):
+        st.session_state.messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are WJ's AI, a friendly, smart, and helpful assistant "
+                    "created by William Jesse."
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": "Hey! I'm **WJ's AI**. Ask me anything!",
+            },
+        ]
+        st.rerun()
+
+for message in st.session_state.messages:
+    if message["role"] in ("user", "assistant"):
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+prompt = st.chat_input("Message WJ's AI...")
+
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        try:
+            with st.spinner("WJ's AI is thinking..."):
+                response = Client().chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=st.session_state.messages,
+                )
+                reply = response.choices[0].message.content
+
+            if not reply:
+                reply = "I didn’t receive a response. Please try again."
+
+            st.markdown(reply)
+            st.session_state.messages.append(
+                {"role": "assistant", "content": reply}
+            )
+        except Exception:
+            st.error(
+                "WJ's AI could not connect to a provider right now. "
+                "Please try again."
+            )
